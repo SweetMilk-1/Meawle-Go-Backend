@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"meawle/internal/services"
@@ -17,7 +17,7 @@ const (
 	UserContextKey contextKey = "user"
 )
 
-// AuthMiddleware представляет middleware для аутентификации
+// AuthMiddleware представляет middleware для аутентификации и проверки прав доступа
 type AuthMiddleware struct {
 	service *services.UserService
 }
@@ -30,7 +30,6 @@ func NewAuthMiddleware(service *services.UserService) *AuthMiddleware {
 // RequireAuth middleware, требующий аутентификации
 func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		token := m.extractToken(r)
 		if token == "" {
 			http.Error(w, "Authorization token required", http.StatusUnauthorized)
@@ -49,36 +48,41 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// RequireAdmin middleware, требующий прав администратора
-func (m *AuthMiddleware) RequireAdmin(next http.Handler) http.Handler {
+// RequireUserAccessOrAdmin middleware, проверяющий что пользователь имеет доступ к данным или является админом
+// Позволяет:
+// - Пользователю получать свои собственные данные
+// - Администратору получать данные всех пользователей
+func (m *AuthMiddleware) RequireUserAccessOrAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("AuthMiddleware: Проверка прав администратора для %s %s", r.Method, r.URL.Path)
-
-		token := m.extractToken(r)
-		if token == "" {
-			log.Printf("AuthMiddleware: Токен отсутствует")
-			http.Error(w, "Authorization token required", http.StatusUnauthorized)
+		// Получаем пользователя из контекста
+		currentUser := GetUserFromContext(r.Context())
+		if currentUser == nil {
+			http.Error(w, "Authentication required", http.StatusUnauthorized)
 			return
 		}
 
-		claims, err := m.service.ValidateToken(token)
+		// Извлекаем ID пользователя из URL параметров
+		idStr := r.URL.Query().Get("id")
+		if idStr == "" {
+			http.Error(w, "ID parameter is required", http.StatusBadRequest)
+			return
+		}
+
+		targetUserID, err := strconv.Atoi(idStr)
 		if err != nil {
-			log.Printf("AuthMiddleware: Неверный токен: %v", err)
-			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+			http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
 			return
 		}
 
-		if !claims.IsAdmin {
-			log.Printf("AuthMiddleware: Пользователь не является администратором: ID=%d", claims.UserID)
-			http.Error(w, "Admin access required", http.StatusForbidden)
+		// Проверяем права доступа
+		// Админ может получать данные всех пользователей
+		// Обычный пользователь может получать только свои данные
+		if !currentUser.IsAdmin && currentUser.UserID != targetUserID {
+			http.Error(w, "Access denied: you can only access your own data", http.StatusForbidden)
 			return
 		}
 
-		log.Printf("AuthMiddleware: Администратор аутентифицирован: ID=%d", claims.UserID)
-
-		// Добавляем claims в контекст
-		ctx := context.WithValue(r.Context(), UserContextKey, claims)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r)
 	})
 }
 

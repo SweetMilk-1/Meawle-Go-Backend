@@ -39,7 +39,6 @@ func main() {
 
 	// Инициализация middleware
 	authMiddleware := middleware.NewAuthMiddleware(userService)
-	accessMiddleware := middleware.NewAccessMiddleware(userService)
 
 	// Настройка маршрутов
 	http.HandleFunc("/api/register", userHandler.Register)
@@ -49,29 +48,25 @@ func main() {
 	http.Handle("/api/users", authMiddleware.RequireAuth(http.HandlerFunc(userHandler.GetAllUsers)))
 	http.Handle("/api/user",
 		authMiddleware.RequireAuth(
-			accessMiddleware.RequireUserAccessOrAdmin(
+			authMiddleware.RequireUserAccessOrAdmin(
 				http.HandlerFunc(userHandler.GetUser),
 			),
 		),
 	)
 	http.Handle("/api/user/update",
 		authMiddleware.RequireAuth(
-			accessMiddleware.RequireUserAccess(
+			authMiddleware.RequireUserAccessOrAdmin(
 				http.HandlerFunc(userHandler.UpdateUser),
 			),
 		),
 	)
 	http.Handle("/api/user/delete",
 		authMiddleware.RequireAuth(
-
-			accessMiddleware.RequireUserAccess(
+			authMiddleware.RequireUserAccessOrAdmin(
 				http.HandlerFunc(userHandler.DeleteUser),
 			),
 		),
 	)
-
-	// Маршруты только для администраторов
-	http.Handle("/api/admin/users", authMiddleware.RequireAdmin(http.HandlerFunc(userHandler.GetAllUsers)))
 
 	log.Printf("Server starting on port %s", port)
 	log.Fatal(http.ListenAndServe(port, nil))
