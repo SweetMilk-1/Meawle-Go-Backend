@@ -1,0 +1,45 @@
+# Примеры использования API
+
+### Регистрация пользователя
+POST  
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "is_admin": false
+}
+
+### Вход пользователя
+POST http://localhost:8080/api/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+### Получение всех пользователей (требуется аутентификация)
+GET http://localhost:8080/api/users
+Authorization: Bearer <your-jwt-token>
+
+### Получение пользователя по ID (требуется аутентификация)
+GET http://localhost:8080/api/user?id=1
+Authorization: Bearer <your-jwt-token>
+
+### Обновление пользователя (требуется аутентификация)
+PUT http://localhost:8080/api/user/update?id=1
+Authorization: Bearer <your-jwt-token>
+Content-Type: application/json
+
+{
+  "email": "newemail@example.com"
+}
+
+### Удаление пользователя (требуется аутентификация)
+DELETE http://localhost:8080/api/user/delete?id=1
+Authorization: Bearer <your-jwt-token>
+
+### Получение всех пользователей (только для администраторов)
+GET http://localhost:8080/api/admin/users
+Authorization: Bearer <your-admin-jwt-token>
