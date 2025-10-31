@@ -1,31 +1,40 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"meawle/internal/config"
 	"meawle/internal/database"
 	"meawle/internal/handlers"
 	"meawle/internal/middleware"
 	"meawle/internal/repositories"
 	"meawle/internal/services"
-	"net/http"
 )
 
 func main() {
-	// Конфигурация
-	dbPath := "app.db"
-	jwtSecret := "your-secret-key-change-in-production"
-	port := ":8080"
+	// Загрузка конфигурации
+	cfg := config.Load()
+
+	// Настройка логгера
+	logger := log.New(os.Stdout, "[API] ", log.LstdFlags|log.Lshortfile)
 
 	// Инициализация базы данных
-	db, err := database.New(dbPath)
+	db, err := database.New(cfg.DBPath)
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		logger.Fatal("Failed to connect to database:", err)
 	}
 	defer db.Close()
 
-	err = db.RunMigrations("migrations")
-	if err != nil {
-		log.Fatal("Failed to run migrations:", err)
+	// Запуск миграций
+	if err := db.RunMigrations("migrations"); err != nil {
+		logger.Fatal("Failed to run migrations:", err)
 	}
 
 	// Инициализация репозиториев
@@ -33,7 +42,7 @@ func main() {
 	catBreedRepo := repositories.NewCatBreedRepository(db)
 
 	// Инициализация сервисов
-	userService := services.NewUserService(userRepo, jwtSecret)
+	userService := services.NewUserService(userRepo, cfg.JWTSecret)
 	catBreedService := services.NewCatBreedService(catBreedRepo)
 
 	// Инициализация хэндлеров
@@ -44,27 +53,71 @@ func main() {
 	authMiddleware := middleware.NewAuthMiddleware(userService)
 	catBreedMiddleware := middleware.NewCatBreedMiddleware(catBreedService)
 
-	// Настройка маршрутов
-	http.HandleFunc("/api/register", userHandler.Register)
-	http.HandleFunc("/api/login", userHandler.Login)
+	// Создание маршрутизатора
+	router := setupRoutes(userHandler, catBreedHandler, authMiddleware, catBreedMiddleware)
+
+	// Настройка сервера
+	server := &http.Server{
+		Addr:         cfg.Port,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// Запуск сервера в горутине
+	go func() {
+		logger.Printf("Server starting on port %s", cfg.Port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Server failed to start:", err)
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Fatal("Server forced to shutdown:", err)
+	}
+
+	logger.Println("Server exited")
+}
+
+func setupRoutes(userHandler *handlers.UserHandler, catBreedHandler *handlers.CatBreedHandler,
+	authMiddleware *middleware.AuthMiddleware, catBreedMiddleware *middleware.CatBreedMiddleware) http.Handler {
+
+	mux := http.NewServeMux()
+
+	// Публичные маршруты
+	mux.HandleFunc("/api/register", userHandler.Register)
+	mux.HandleFunc("/api/login", userHandler.Login)
+	mux.HandleFunc("/api/cat-breeds", catBreedHandler.GetAllCatBreeds)
+	mux.HandleFunc("/api/cat-breed", catBreedHandler.GetCatBreed)
 
 	// Защищенные маршруты пользователей
-	http.Handle("/api/users", authMiddleware.RequireAuth(http.HandlerFunc(userHandler.GetAllUsers)))
-	http.Handle("/api/user",
+	mux.Handle("/api/users", authMiddleware.RequireAuth(http.HandlerFunc(userHandler.GetAllUsers)))
+	mux.Handle("/api/user",
 		authMiddleware.RequireAuth(
 			authMiddleware.RequireUserAccessOrAdmin(
 				http.HandlerFunc(userHandler.GetUser),
 			),
 		),
 	)
-	http.Handle("/api/user/update",
+	mux.Handle("/api/user/update",
 		authMiddleware.RequireAuth(
 			authMiddleware.RequireUserAccessOrAdmin(
 				http.HandlerFunc(userHandler.UpdateUser),
 			),
 		),
 	)
-	http.Handle("/api/user/delete",
+	mux.Handle("/api/user/delete",
 		authMiddleware.RequireAuth(
 			authMiddleware.RequireUserAccessOrAdmin(
 				http.HandlerFunc(userHandler.DeleteUser),
@@ -72,22 +125,16 @@ func main() {
 		),
 	)
 
-	// Маршруты для пород кошек
-	// Публичные маршруты (не требуют аутентификации)
-	http.HandleFunc("/api/cat-breeds", catBreedHandler.GetAllCatBreeds)
-	http.HandleFunc("/api/cat-breed", catBreedHandler.GetCatBreed)
-
-	// Защищенные маршруты (требуют аутентификации)
-	http.Handle("/api/cat-breeds/my", authMiddleware.RequireAuth(http.HandlerFunc(catBreedHandler.GetUserCatBreeds)))
-	http.Handle("/api/cat-breed/create", authMiddleware.RequireAuth(http.HandlerFunc(catBreedHandler.Create)))
-	http.Handle("/api/cat-breed/update",
+	// Защищенные маршруты пород кошек
+	mux.Handle("/api/cat-breed/create", authMiddleware.RequireAuth(http.HandlerFunc(catBreedHandler.Create)))
+	mux.Handle("/api/cat-breed/update",
 		authMiddleware.RequireAuth(
 			catBreedMiddleware.RequireCatBreedOwnerOrAdmin(
 				http.HandlerFunc(catBreedHandler.UpdateCatBreed),
 			),
 		),
 	)
-	http.Handle("/api/cat-breed/delete",
+	mux.Handle("/api/cat-breed/delete",
 		authMiddleware.RequireAuth(
 			catBreedMiddleware.RequireCatBreedOwnerOrAdmin(
 				http.HandlerFunc(catBreedHandler.DeleteCatBreed),
@@ -95,6 +142,11 @@ func main() {
 		),
 	)
 
-	log.Printf("Server starting on port %s", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	// Health check
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	return mux
 }

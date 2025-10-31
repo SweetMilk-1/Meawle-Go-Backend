@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	ErrCatBreedNotFound      = errors.New("cat breed not found")
-	ErrCatBreedNameExists    = errors.New("cat breed name already exists")
-	ErrInvalidCatBreedData   = errors.New("invalid cat breed data")
-	ErrAccessDenied          = errors.New("access denied")
-	ErrInvalidCreationDate   = errors.New("creation date cannot be before 2000")
+	ErrCatBreedNotFound    = errors.New("cat breed not found")
+	ErrCatBreedNameExists  = errors.New("cat breed name already exists")
+	ErrInvalidCatBreedData = errors.New("invalid cat breed data")
+	ErrAccessDenied        = errors.New("access denied")
+	ErrInvalidCreationDate = errors.New("creation date cannot be before 2000")
 )
 
 // CatBreedService представляет сервис для работы с породами кошек
@@ -80,21 +80,6 @@ func (s *CatBreedService) GetCatBreedByID(id int) (*models.CatBreedResponse, err
 // GetAllCatBreeds возвращает все породы кошек
 func (s *CatBreedService) GetAllCatBreeds() ([]models.CatBreedResponse, error) {
 	breeds, err := s.repo.GetAll()
-	if err != nil {
-		return nil, err
-	}
-
-	var responses []models.CatBreedResponse
-	for _, breed := range breeds {
-		responses = append(responses, breed.ToResponse())
-	}
-
-	return responses, nil
-}
-
-// GetCatBreedsByUserID возвращает породы кошек по ID пользователя
-func (s *CatBreedService) GetCatBreedsByUserID(userID int) ([]models.CatBreedResponse, error) {
-	breeds, err := s.repo.GetByUserID(userID)
 	if err != nil {
 		return nil, err
 	}
