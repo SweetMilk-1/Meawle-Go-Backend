@@ -13,7 +13,6 @@ func SetupRoutes(
 	userHandler *handlers.UserHandler,
 	catBreedHandler *handlers.CatBreedHandler,
 	authMiddleware *middleware.AuthMiddleware,
-	catBreedMiddleware *middleware.CatBreedMiddleware,
 ) http.Handler {
 	mux := http.NewServeMux()
 
@@ -25,45 +24,13 @@ func SetupRoutes(
 
 	// Защищенные маршруты пользователей
 	mux.Handle("/api/users", authMiddleware.RequireAuth(http.HandlerFunc(userHandler.GetAllUsers)))
-	mux.Handle("/api/user",
-		authMiddleware.RequireAuth(
-			authMiddleware.RequireUserAccessOrAdmin(
-				http.HandlerFunc(userHandler.GetUser),
-			),
-		),
-	)
-	mux.Handle("/api/user/update",
-		authMiddleware.RequireAuth(
-			authMiddleware.RequireUserAccessOrAdmin(
-				http.HandlerFunc(userHandler.UpdateUser),
-			),
-		),
-	)
-	mux.Handle("/api/user/delete",
-		authMiddleware.RequireAuth(
-			authMiddleware.RequireUserAccessOrAdmin(
-				http.HandlerFunc(userHandler.DeleteUser),
-			),
-		),
-	)
-
+	mux.Handle("/api/user", authMiddleware.RequireAuth(http.HandlerFunc(userHandler.GetUser)))
+	mux.Handle("/api/user/update", authMiddleware.RequireAuth(http.HandlerFunc(userHandler.UpdateUser)))
+	mux.Handle("/api/user/delete", authMiddleware.RequireAuth(http.HandlerFunc(userHandler.DeleteUser)))
 	// Защищенные маршруты пород кошек
 	mux.Handle("/api/cat-breed/create", authMiddleware.RequireAuth(http.HandlerFunc(catBreedHandler.Create)))
-	mux.Handle("/api/cat-breed/update",
-		authMiddleware.RequireAuth(
-			catBreedMiddleware.RequireCatBreedOwnerOrAdmin(
-				http.HandlerFunc(catBreedHandler.UpdateCatBreed),
-			),
-		),
-	)
-	mux.Handle("/api/cat-breed/delete",
-		authMiddleware.RequireAuth(
-			catBreedMiddleware.RequireCatBreedOwnerOrAdmin(
-				http.HandlerFunc(catBreedHandler.DeleteCatBreed),
-			),
-		),
-	)
-
+	mux.Handle("/api/cat-breed/update", authMiddleware.RequireAuth(http.HandlerFunc(catBreedHandler.UpdateCatBreed)))
+	mux.Handle("/api/cat-breed/delete", authMiddleware.RequireAuth(http.HandlerFunc(catBreedHandler.DeleteCatBreed)))
 	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

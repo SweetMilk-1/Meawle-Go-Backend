@@ -12,7 +12,6 @@ var (
 	ErrCatBreedNotFound    = errors.New("cat breed not found")
 	ErrCatBreedNameExists  = errors.New("cat breed name already exists")
 	ErrInvalidCatBreedData = errors.New("invalid cat breed data")
-	ErrAccessDenied        = errors.New("access denied")
 	ErrInvalidCreationDate = errors.New("creation date cannot be before 2000")
 )
 
@@ -133,13 +132,4 @@ func (s *CatBreedService) DeleteCatBreed(id int, userID int, isAdmin bool) error
 	}
 
 	return s.repo.Delete(id)
-}
-
-// CanUserModifyCatBreed проверяет, может ли пользователь изменять породу
-func (s *CatBreedService) CanUserModifyCatBreed(breedID int, userID int, isAdmin bool) (bool, error) {
-	if isAdmin {
-		return true, nil
-	}
-
-	return s.repo.IsOwner(breedID, userID)
 }

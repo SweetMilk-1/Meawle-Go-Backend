@@ -13,17 +13,16 @@ import (
 
 // Dependencies содержит все зависимости приложения
 type Dependencies struct {
-	Config             *config.Config
-	Logger             *log.Logger
-	DB                 *database.Database
-	UserRepo           repositories.UserRepository
-	CatBreedRepo       repositories.CatBreedRepository
-	UserService        *services.UserService
-	CatBreedService    *services.CatBreedService
-	UserHandler        *handlers.UserHandler
-	CatBreedHandler    *handlers.CatBreedHandler
-	AuthMiddleware     *middleware.AuthMiddleware
-	CatBreedMiddleware *middleware.CatBreedMiddleware
+	Config          *config.Config
+	Logger          *log.Logger
+	DB              *database.Database
+	UserRepo        repositories.UserRepository
+	CatBreedRepo    repositories.CatBreedRepository
+	UserService     *services.UserService
+	CatBreedService *services.CatBreedService
+	UserHandler     *handlers.UserHandler
+	CatBreedHandler *handlers.CatBreedHandler
+	AuthMiddleware  *middleware.AuthMiddleware
 }
 
 // InitializeDependencies инициализирует все зависимости приложения
@@ -53,19 +52,17 @@ func InitializeDependencies(cfg *config.Config, logger *log.Logger) (*Dependenci
 
 	// Инициализация middleware
 	authMiddleware := middleware.NewAuthMiddleware(userService)
-	catBreedMiddleware := middleware.NewCatBreedMiddleware(catBreedService)
 
 	return &Dependencies{
-		Config:             cfg,
-		Logger:             logger,
-		DB:                 db,
-		UserRepo:           userRepo,
-		CatBreedRepo:       catBreedRepo,
-		UserService:        userService,
-		CatBreedService:    catBreedService,
-		UserHandler:        userHandler,
-		CatBreedHandler:    catBreedHandler,
-		AuthMiddleware:     authMiddleware,
-		CatBreedMiddleware: catBreedMiddleware,
+		Config:          cfg,
+		Logger:          logger,
+		DB:              db,
+		UserRepo:        userRepo,
+		CatBreedRepo:    catBreedRepo,
+		UserService:     userService,
+		CatBreedService: catBreedService,
+		UserHandler:     userHandler,
+		CatBreedHandler: catBreedHandler,
+		AuthMiddleware:  authMiddleware,
 	}, nil
 }

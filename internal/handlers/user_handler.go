@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"meawle/internal/middleware"
 	"meawle/internal/models"
 	"meawle/internal/services"
 )
@@ -80,6 +81,13 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	if currentUser == nil {
+		rw.Error(http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
 	// Извлекаем ID из URL параметров
 	id, err := ParseID(r, "id")
 	if err != nil {
@@ -87,9 +95,9 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.GetUserByID(id)
+	user, err := h.service.GetUserByID(id, currentUser.UserID, currentUser.IsAdmin)
 	if err != nil {
-		rw.Error(http.StatusNotFound, "User not found")
+		h.handleServiceError(rw, err)
 		return
 	}
 
@@ -123,6 +131,13 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	if currentUser == nil {
+		rw.Error(http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
 	// Извлекаем ID из URL параметров
 	id, err := ParseID(r, "id")
 	if err != nil {
@@ -136,7 +151,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.UpdateUser(id, &req)
+	err = h.service.UpdateUser(id, &req, currentUser.UserID, currentUser.IsAdmin)
 	if err != nil {
 		h.handleServiceError(rw, err)
 		return
@@ -154,6 +169,13 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	if currentUser == nil {
+		rw.Error(http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
 	// Извлекаем ID из URL параметров
 	id, err := ParseID(r, "id")
 	if err != nil {
@@ -161,9 +183,9 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.DeleteUser(id)
+	err = h.service.DeleteUser(id, currentUser.UserID, currentUser.IsAdmin)
 	if err != nil {
-		rw.Error(http.StatusNotFound, "User not found")
+		h.handleServiceError(rw, err)
 		return
 	}
 
@@ -177,6 +199,8 @@ func (h *UserHandler) handleServiceError(rw *ResponseWriter, err error) {
 		rw.Error(http.StatusNotFound, "User not found")
 	case services.ErrEmailExists:
 		rw.Error(http.StatusConflict, "Email already exists")
+	case services.ErrAccessDenied:
+		rw.Error(http.StatusForbidden, "Access denied")
 	default:
 		rw.Error(http.StatusInternalServerError, "Internal server error")
 	}

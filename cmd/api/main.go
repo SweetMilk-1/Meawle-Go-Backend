@@ -24,7 +24,6 @@ func main() {
 		deps.UserHandler,
 		deps.CatBreedHandler,
 		deps.AuthMiddleware,
-		deps.CatBreedMiddleware,
 	)
 
 	// Создание и запуск сервера

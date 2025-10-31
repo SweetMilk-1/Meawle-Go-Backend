@@ -15,6 +15,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrEmailExists        = errors.New("email already exists")
 	ErrUnauthorized       = errors.New("unauthorized")
+	ErrAccessDenied       = errors.New("access denied")
 )
 
 // JWTClaims представляет claims для JWT токена
@@ -91,7 +92,14 @@ func (s *UserService) Login(req *models.UserLoginRequest) (string, *models.UserR
 }
 
 // GetUserByID возвращает пользователя по ID
-func (s *UserService) GetUserByID(id int) (*models.UserResponse, error) {
+func (s *UserService) GetUserByID(id int, currentUserID int, isAdmin bool) (*models.UserResponse, error) {
+	// Проверяем права доступа
+	// Админ может получать данные всех пользователей
+	// Обычный пользователь может получать только свои данные
+	if !isAdmin && currentUserID != id {
+		return nil, ErrAccessDenied
+	}
+
 	user, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, ErrUserNotFound
@@ -117,7 +125,14 @@ func (s *UserService) GetAllUsers() ([]models.UserResponse, error) {
 }
 
 // UpdateUser обновляет данные пользователя
-func (s *UserService) UpdateUser(id int, req *models.UserUpdateRequest) error {
+func (s *UserService) UpdateUser(id int, req *models.UserUpdateRequest, currentUserID int, isAdmin bool) error {
+	// Проверяем права доступа
+	// Админ может обновлять данные всех пользователей
+	// Обычный пользователь может обновлять только свои данные
+	if !isAdmin && currentUserID != id {
+		return ErrAccessDenied
+	}
+
 	// Проверяем существование пользователя
 	_, err := s.repo.GetByID(id)
 	if err != nil {
@@ -139,7 +154,14 @@ func (s *UserService) UpdateUser(id int, req *models.UserUpdateRequest) error {
 }
 
 // DeleteUser удаляет пользователя
-func (s *UserService) DeleteUser(id int) error {
+func (s *UserService) DeleteUser(id int, currentUserID int, isAdmin bool) error {
+	// Проверяем права доступа
+	// Админ может удалять данные всех пользователей
+	// Обычный пользователь может удалять только свои данные
+	if !isAdmin && currentUserID != id {
+		return ErrAccessDenied
+	}
+
 	// Проверяем существование пользователя
 	_, err := s.repo.GetByID(id)
 	if err != nil {
