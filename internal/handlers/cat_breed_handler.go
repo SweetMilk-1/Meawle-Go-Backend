@@ -23,206 +23,264 @@ func NewCatBreedHandler(service *services.CatBreedService) *CatBreedHandler {
 // Create обрабатывает создание породы кошек
 func (h *CatBreedHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(models.Error("Method not allowed"))
 		return
 	}
 
 	// Получаем пользователя из контекста
 	currentUser := middleware.GetUserFromContext(r.Context())
 	if currentUser == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(models.Error("Authentication required"))
 		return
 	}
 
 	var req models.CatBreedCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.Error("Invalid request body"))
 		return
 	}
 
 	breed, err := h.service.Create(&req, currentUser.UserID)
 	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
 		switch err {
 		case services.ErrCatBreedNameExists:
-			http.Error(w, "Cat breed name already exists", http.StatusConflict)
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(models.Error("Cat breed name already exists"))
 		case services.ErrInvalidCatBreedData:
-			http.Error(w, "Invalid cat breed data", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(models.Error("Invalid cat breed data"))
 		case services.ErrInvalidCreationDate:
-			http.Error(w, "Invalid creation date", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(models.Error("Invalid creation date"))
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(models.Error("Internal server error"))
 		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(breed)
+	json.NewEncoder(w).Encode(models.Success(breed))
 }
 
 // GetCatBreed обрабатывает получение породы кошек по ID
 func (h *CatBreedHandler) GetCatBreed(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(models.Error("Method not allowed"))
 		return
 	}
 
 	// Извлекаем ID из URL параметров
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
-		http.Error(w, "ID parameter is required", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.Error("ID parameter is required"))
 		return
 	}
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.Error("Invalid ID parameter"))
 		return
 	}
 
 	breed, err := h.service.GetCatBreedByID(id)
 	if err != nil {
-		http.Error(w, "Cat breed not found", http.StatusNotFound)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(models.Error("Cat breed not found"))
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(breed)
+	json.NewEncoder(w).Encode(models.Success(breed))
 }
 
 // GetAllCatBreeds обрабатывает получение всех пород кошек
 func (h *CatBreedHandler) GetAllCatBreeds(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(models.Error("Method not allowed"))
 		return
 	}
 
 	breeds, err := h.service.GetAllCatBreeds()
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(models.Error("Internal server error"))
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(breeds)
+	json.NewEncoder(w).Encode(models.Success(breeds))
 }
 
 // GetUserCatBreeds обрабатывает получение пород кошек текущего пользователя
 func (h *CatBreedHandler) GetUserCatBreeds(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(models.Error("Method not allowed"))
 		return
 	}
 
 	// Получаем пользователя из контекста
 	currentUser := middleware.GetUserFromContext(r.Context())
 	if currentUser == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(models.Error("Authentication required"))
 		return
 	}
 
 	breeds, err := h.service.GetCatBreedsByUserID(currentUser.UserID)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(models.Error("Internal server error"))
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(breeds)
+	json.NewEncoder(w).Encode(models.Success(breeds))
 }
 
 // UpdateCatBreed обрабатывает обновление породы кошек
 func (h *CatBreedHandler) UpdateCatBreed(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(models.Error("Method not allowed"))
 		return
 	}
 
 	// Получаем пользователя из контекста
 	currentUser := middleware.GetUserFromContext(r.Context())
 	if currentUser == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(models.Error("Authentication required"))
 		return
 	}
 
 	// Извлекаем ID из URL параметров
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
-		http.Error(w, "ID parameter is required", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.Error("ID parameter is required"))
 		return
 	}
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.Error("Invalid ID parameter"))
 		return
 	}
 
 	var req models.CatBreedUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.Error("Invalid request body"))
 		return
 	}
 
 	err = h.service.UpdateCatBreed(id, &req, currentUser.UserID, currentUser.IsAdmin)
 	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
 		switch err {
 		case services.ErrCatBreedNotFound:
-			http.Error(w, "Cat breed not found", http.StatusNotFound)
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(models.Error("Cat breed not found"))
 		case services.ErrCatBreedNameExists:
-			http.Error(w, "Cat breed name already exists", http.StatusConflict)
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(models.Error("Cat breed name already exists"))
 		case services.ErrAccessDenied:
-			http.Error(w, "Access denied", http.StatusForbidden)
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(models.Error("Access denied"))
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(models.Error("Internal server error"))
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Cat breed updated successfully"))
+	json.NewEncoder(w).Encode(models.Success("Cat breed updated successfully"))
 }
 
 // DeleteCatBreed обрабатывает удаление породы кошек
 func (h *CatBreedHandler) DeleteCatBreed(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(models.Error("Method not allowed"))
 		return
 	}
 
 	// Получаем пользователя из контекста
 	currentUser := middleware.GetUserFromContext(r.Context())
 	if currentUser == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(models.Error("Authentication required"))
 		return
 	}
 
 	// Извлекаем ID из URL параметров
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
-		http.Error(w, "ID parameter is required", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.Error("ID parameter is required"))
 		return
 	}
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.Error("Invalid ID parameter"))
 		return
 	}
 
 	err = h.service.DeleteCatBreed(id, currentUser.UserID, currentUser.IsAdmin)
 	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
 		switch err {
 		case services.ErrCatBreedNotFound:
-			http.Error(w, "Cat breed not found", http.StatusNotFound)
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(models.Error("Cat breed not found"))
 		case services.ErrAccessDenied:
-			http.Error(w, "Access denied", http.StatusForbidden)
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(models.Error("Access denied"))
 		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(models.Error("Internal server error"))
 		}
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Cat breed deleted successfully"))
+	json.NewEncoder(w).Encode(models.Success("Cat breed deleted successfully"))
 }
