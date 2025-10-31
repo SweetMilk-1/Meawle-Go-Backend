@@ -1,7 +1,7 @@
 # Примеры использования API
 
 ### Регистрация пользователя
-POST  
+POST http://localhost:8080/api/register
 Content-Type: application/json
 
 {
@@ -40,6 +40,36 @@ Content-Type: application/json
 DELETE http://localhost:8080/api/user/delete?id=1
 Authorization: Bearer <your-jwt-token>
 
-### Получение всех пользователей (только для администраторов)
-GET http://localhost:8080/api/admin/users
-Authorization: Bearer <your-admin-jwt-token>
+### Получение всех пород кошек (публичный доступ)
+GET http://localhost:8080/api/cat-breeds
+
+### Получение породы кошек по ID (публичный доступ)
+GET http://localhost:8080/api/cat-breed?id=1
+
+### Получение пород кошек текущего пользователя (требуется аутентификация)
+GET http://localhost:8080/api/cat-breeds/my
+Authorization: Bearer <your-jwt-token>
+
+### Создание породы кошек (требуется аутентификация)
+POST http://localhost:8080/api/cat-breed/create
+Authorization: Bearer <your-jwt-token>
+Content-Type: application/json
+
+{
+  "name": "Норвежская лесная",
+  "description": "Крупная кошка с густой шерстью, хорошо адаптированная к холодному климату"
+}
+
+### Обновление породы кошек (требуется аутентификация, только владелец или админ)
+PUT http://localhost:8080/api/cat-breed/update?id=1
+Authorization: Bearer <your-jwt-token>
+Content-Type: application/json
+
+{
+  "name": "Обновленное название",
+  "description": "Обновленное описание породы"
+}
+
+### Удаление породы кошек (требуется аутентификация, только владелец или админ)
+DELETE http://localhost:8080/api/cat-breed/delete?id=1
+Authorization: Bearer <your-jwt-token>

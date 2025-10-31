@@ -30,21 +30,25 @@ func main() {
 
 	// Инициализация репозиториев
 	userRepo := repositories.NewUserRepository(db)
+	catBreedRepo := repositories.NewCatBreedRepository(db)
 
 	// Инициализация сервисов
 	userService := services.NewUserService(userRepo, jwtSecret)
+	catBreedService := services.NewCatBreedService(catBreedRepo)
 
 	// Инициализация хэндлеров
 	userHandler := handlers.NewUserHandler(userService)
+	catBreedHandler := handlers.NewCatBreedHandler(catBreedService)
 
 	// Инициализация middleware
 	authMiddleware := middleware.NewAuthMiddleware(userService)
+	catBreedMiddleware := middleware.NewCatBreedMiddleware(catBreedService)
 
 	// Настройка маршрутов
 	http.HandleFunc("/api/register", userHandler.Register)
 	http.HandleFunc("/api/login", userHandler.Login)
 
-	// Защищенные маршруты
+	// Защищенные маршруты пользователей
 	http.Handle("/api/users", authMiddleware.RequireAuth(http.HandlerFunc(userHandler.GetAllUsers)))
 	http.Handle("/api/user",
 		authMiddleware.RequireAuth(
@@ -64,6 +68,29 @@ func main() {
 		authMiddleware.RequireAuth(
 			authMiddleware.RequireUserAccessOrAdmin(
 				http.HandlerFunc(userHandler.DeleteUser),
+			),
+		),
+	)
+
+	// Маршруты для пород кошек
+	// Публичные маршруты (не требуют аутентификации)
+	http.HandleFunc("/api/cat-breeds", catBreedHandler.GetAllCatBreeds)
+	http.HandleFunc("/api/cat-breed", catBreedHandler.GetCatBreed)
+
+	// Защищенные маршруты (требуют аутентификации)
+	http.Handle("/api/cat-breeds/my", authMiddleware.RequireAuth(http.HandlerFunc(catBreedHandler.GetUserCatBreeds)))
+	http.Handle("/api/cat-breed/create", authMiddleware.RequireAuth(http.HandlerFunc(catBreedHandler.Create)))
+	http.Handle("/api/cat-breed/update",
+		authMiddleware.RequireAuth(
+			catBreedMiddleware.RequireCatBreedOwnerOrAdmin(
+				http.HandlerFunc(catBreedHandler.UpdateCatBreed),
+			),
+		),
+	)
+	http.Handle("/api/cat-breed/delete",
+		authMiddleware.RequireAuth(
+			catBreedMiddleware.RequireCatBreedOwnerOrAdmin(
+				http.HandlerFunc(catBreedHandler.DeleteCatBreed),
 			),
 		),
 	)
