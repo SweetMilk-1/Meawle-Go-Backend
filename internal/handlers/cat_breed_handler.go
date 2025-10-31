@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"meawle/internal/middleware"
 	"meawle/internal/models"
@@ -22,207 +21,162 @@ func NewCatBreedHandler(service *services.CatBreedService) *CatBreedHandler {
 
 // Create обрабатывает создание породы кошек
 func (h *CatBreedHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	rw := NewResponseWriter(w)
+
+	if !ValidateMethod(r, http.MethodPost) {
+		rw.Error(ErrMethodNotAllowed.StatusCode, ErrMethodNotAllowed.Message)
 		return
 	}
 
 	// Получаем пользователя из контекста
 	currentUser := middleware.GetUserFromContext(r.Context())
 	if currentUser == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		rw.Error(http.StatusUnauthorized, "Authentication required")
 		return
 	}
 
 	var req models.CatBreedCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		rw.Error(http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	breed, err := h.service.Create(&req, currentUser.UserID)
 	if err != nil {
-		switch err {
-		case services.ErrCatBreedNameExists:
-			http.Error(w, "Cat breed name already exists", http.StatusConflict)
-		case services.ErrInvalidCatBreedData:
-			http.Error(w, "Invalid cat breed data", http.StatusBadRequest)
-		case services.ErrInvalidCreationDate:
-			http.Error(w, "Invalid creation date", http.StatusBadRequest)
-		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-		}
+		h.handleServiceError(rw, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(breed)
+	rw.Created(breed)
 }
 
 // GetCatBreed обрабатывает получение породы кошек по ID
 func (h *CatBreedHandler) GetCatBreed(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	rw := NewResponseWriter(w)
+
+	if !ValidateMethod(r, http.MethodGet) {
+		rw.Error(ErrMethodNotAllowed.StatusCode, ErrMethodNotAllowed.Message)
 		return
 	}
 
 	// Извлекаем ID из URL параметров
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		http.Error(w, "ID parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
+	id, err := ParseID(r, "id")
 	if err != nil {
-		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		rw.Error(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	breed, err := h.service.GetCatBreedByID(id)
 	if err != nil {
-		http.Error(w, "Cat breed not found", http.StatusNotFound)
+		rw.Error(http.StatusNotFound, "Cat breed not found")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(breed)
+	rw.Success(breed)
 }
 
 // GetAllCatBreeds обрабатывает получение всех пород кошек
 func (h *CatBreedHandler) GetAllCatBreeds(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	rw := NewResponseWriter(w)
+
+	if !ValidateMethod(r, http.MethodGet) {
+		rw.Error(ErrMethodNotAllowed.StatusCode, ErrMethodNotAllowed.Message)
 		return
 	}
 
 	breeds, err := h.service.GetAllCatBreeds()
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		rw.Error(http.StatusInternalServerError, "Internal server error")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(breeds)
-}
-
-// GetUserCatBreeds обрабатывает получение пород кошек текущего пользователя
-func (h *CatBreedHandler) GetUserCatBreeds(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Получаем пользователя из контекста
-	currentUser := middleware.GetUserFromContext(r.Context())
-	if currentUser == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	breeds, err := h.service.GetCatBreedsByUserID(currentUser.UserID)
-	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(breeds)
+	rw.Success(breeds)
 }
 
 // UpdateCatBreed обрабатывает обновление породы кошек
 func (h *CatBreedHandler) UpdateCatBreed(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	rw := NewResponseWriter(w)
+
+	if !ValidateMethod(r, http.MethodPut) {
+		rw.Error(ErrMethodNotAllowed.StatusCode, ErrMethodNotAllowed.Message)
 		return
 	}
 
 	// Получаем пользователя из контекста
 	currentUser := middleware.GetUserFromContext(r.Context())
 	if currentUser == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		rw.Error(http.StatusUnauthorized, "Authentication required")
 		return
 	}
 
 	// Извлекаем ID из URL параметров
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		http.Error(w, "ID parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
+	id, err := ParseID(r, "id")
 	if err != nil {
-		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		rw.Error(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var req models.CatBreedUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		rw.Error(http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	err = h.service.UpdateCatBreed(id, &req, currentUser.UserID, currentUser.IsAdmin)
 	if err != nil {
-		switch err {
-		case services.ErrCatBreedNotFound:
-			http.Error(w, "Cat breed not found", http.StatusNotFound)
-		case services.ErrCatBreedNameExists:
-			http.Error(w, "Cat breed name already exists", http.StatusConflict)
-		case services.ErrAccessDenied:
-			http.Error(w, "Access denied", http.StatusForbidden)
-		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-		}
+		h.handleServiceError(rw, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Cat breed updated successfully"))
+	rw.Success("Cat breed updated successfully")
 }
 
 // DeleteCatBreed обрабатывает удаление породы кошек
 func (h *CatBreedHandler) DeleteCatBreed(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	rw := NewResponseWriter(w)
+
+	if !ValidateMethod(r, http.MethodDelete) {
+		rw.Error(ErrMethodNotAllowed.StatusCode, ErrMethodNotAllowed.Message)
 		return
 	}
 
 	// Получаем пользователя из контекста
 	currentUser := middleware.GetUserFromContext(r.Context())
 	if currentUser == nil {
-		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		rw.Error(http.StatusUnauthorized, "Authentication required")
 		return
 	}
 
 	// Извлекаем ID из URL параметров
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		http.Error(w, "ID parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
+	id, err := ParseID(r, "id")
 	if err != nil {
-		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		rw.Error(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	err = h.service.DeleteCatBreed(id, currentUser.UserID, currentUser.IsAdmin)
 	if err != nil {
-		switch err {
-		case services.ErrCatBreedNotFound:
-			http.Error(w, "Cat breed not found", http.StatusNotFound)
-		case services.ErrAccessDenied:
-			http.Error(w, "Access denied", http.StatusForbidden)
-		default:
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-		}
+		h.handleServiceError(rw, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Cat breed deleted successfully"))
+	rw.Success("Cat breed deleted successfully")
+}
+
+// handleServiceError обрабатывает ошибки сервиса
+func (h *CatBreedHandler) handleServiceError(rw *ResponseWriter, err error) {
+	switch err {
+	case services.ErrCatBreedNotFound:
+		rw.Error(http.StatusNotFound, "Cat breed not found")
+	case services.ErrCatBreedNameExists:
+		rw.Error(http.StatusConflict, "Cat breed name already exists")
+	case services.ErrInvalidCatBreedData:
+		rw.Error(http.StatusBadRequest, "Invalid cat breed data")
+	case services.ErrInvalidCreationDate:
+		rw.Error(http.StatusBadRequest, "Invalid creation date")
+	case services.ErrAccessDenied:
+		rw.Error(http.StatusForbidden, "Access denied")
+	default:
+		rw.Error(http.StatusInternalServerError, "Internal server error")
+	}
 }

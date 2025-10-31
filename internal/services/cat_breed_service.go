@@ -9,11 +9,10 @@ import (
 )
 
 var (
-	ErrCatBreedNotFound      = errors.New("cat breed not found")
-	ErrCatBreedNameExists    = errors.New("cat breed name already exists")
-	ErrInvalidCatBreedData   = errors.New("invalid cat breed data")
-	ErrAccessDenied          = errors.New("access denied")
-	ErrInvalidCreationDate   = errors.New("creation date cannot be before 2000")
+	ErrCatBreedNotFound    = errors.New("cat breed not found")
+	ErrCatBreedNameExists  = errors.New("cat breed name already exists")
+	ErrInvalidCatBreedData = errors.New("invalid cat breed data")
+	ErrInvalidCreationDate = errors.New("creation date cannot be before 2000")
 )
 
 // CatBreedService представляет сервис для работы с породами кошек
@@ -92,21 +91,6 @@ func (s *CatBreedService) GetAllCatBreeds() ([]models.CatBreedResponse, error) {
 	return responses, nil
 }
 
-// GetCatBreedsByUserID возвращает породы кошек по ID пользователя
-func (s *CatBreedService) GetCatBreedsByUserID(userID int) ([]models.CatBreedResponse, error) {
-	breeds, err := s.repo.GetByUserID(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	var responses []models.CatBreedResponse
-	for _, breed := range breeds {
-		responses = append(responses, breed.ToResponse())
-	}
-
-	return responses, nil
-}
-
 // UpdateCatBreed обновляет данные породы кошек
 func (s *CatBreedService) UpdateCatBreed(id int, req *models.CatBreedUpdateRequest, userID int, isAdmin bool) error {
 	// Проверяем существование породы
@@ -148,13 +132,4 @@ func (s *CatBreedService) DeleteCatBreed(id int, userID int, isAdmin bool) error
 	}
 
 	return s.repo.Delete(id)
-}
-
-// CanUserModifyCatBreed проверяет, может ли пользователь изменять породу
-func (s *CatBreedService) CanUserModifyCatBreed(breedID int, userID int, isAdmin bool) (bool, error) {
-	if isAdmin {
-		return true, nil
-	}
-
-	return s.repo.IsOwner(breedID, userID)
 }
