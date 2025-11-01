@@ -3,10 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"meawle/internal/middleware"
 	"meawle/internal/models"
 	"meawle/internal/services"
+
+	"github.com/gorilla/mux"
 )
 
 // CatBreedHandler представляет хэндлер для работы с породами кошек
@@ -59,10 +62,12 @@ func (h *CatBreedHandler) GetCatBreed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid cat breed ID")
 		return
 	}
 
@@ -109,10 +114,12 @@ func (h *CatBreedHandler) UpdateCatBreed(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid cat breed ID")
 		return
 	}
 
@@ -147,10 +154,12 @@ func (h *CatBreedHandler) DeleteCatBreed(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid cat breed ID")
 		return
 	}
 
