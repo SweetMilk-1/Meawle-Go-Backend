@@ -18,10 +18,13 @@ type Dependencies struct {
 	DB              *database.Database
 	UserRepo        repositories.UserRepository
 	CatBreedRepo    repositories.CatBreedRepository
+	CatRepo         repositories.CatRepository
 	UserService     *services.UserService
 	CatBreedService *services.CatBreedService
+	CatService      *services.CatService
 	UserHandler     *handlers.UserHandler
 	CatBreedHandler *handlers.CatBreedHandler
+	CatHandler      *handlers.CatHandler
 	AuthMiddleware  *middleware.AuthMiddleware
 }
 
@@ -41,14 +44,17 @@ func InitializeDependencies(cfg *config.Config, logger *log.Logger) (*Dependenci
 	// Инициализация репозиториев
 	userRepo := repositories.NewUserRepository(db)
 	catBreedRepo := repositories.NewCatBreedRepository(db)
+	catRepo := repositories.NewCatRepository(db)
 
 	// Инициализация сервисов
 	userService := services.NewUserService(userRepo, cfg.JWTSecret)
 	catBreedService := services.NewCatBreedService(catBreedRepo)
+	catService := services.NewCatService(catRepo)
 
 	// Инициализация хэндлеров
 	userHandler := handlers.NewUserHandler(userService)
 	catBreedHandler := handlers.NewCatBreedHandler(catBreedService)
+	catHandler := handlers.NewCatHandler(catService)
 
 	// Инициализация middleware
 	authMiddleware := middleware.NewAuthMiddleware(userService)
@@ -59,10 +65,13 @@ func InitializeDependencies(cfg *config.Config, logger *log.Logger) (*Dependenci
 		DB:              db,
 		UserRepo:        userRepo,
 		CatBreedRepo:    catBreedRepo,
+		CatRepo:         catRepo,
 		UserService:     userService,
 		CatBreedService: catBreedService,
+		CatService:      catService,
 		UserHandler:     userHandler,
 		CatBreedHandler: catBreedHandler,
+		CatHandler:      catHandler,
 		AuthMiddleware:  authMiddleware,
 	}, nil
 }

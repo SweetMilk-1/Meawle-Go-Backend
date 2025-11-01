@@ -23,6 +23,7 @@ func main() {
 	router := routes.SetupRoutes(
 		deps.UserHandler,
 		deps.CatBreedHandler,
+		deps.CatHandler,
 		deps.AuthMiddleware,
 	)
 
