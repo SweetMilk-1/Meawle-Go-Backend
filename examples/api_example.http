@@ -73,3 +73,39 @@ Content-Type: application/json
 ### Удаление породы кошек (требуется аутентификация, только владелец или админ)
 DELETE http://localhost:8080/api/cat-breed/delete?id=1
 Authorization: Bearer <your-jwt-token>
+
+### Получение всех котов (публичный доступ)
+GET http://localhost:8080/api/cats
+
+### Получение кота по ID (публичный доступ)
+GET http://localhost:8080/api/cat?id=1
+
+### Получение котов текущего пользователя (требуется аутентификация)
+GET http://localhost:8080/api/cats/my
+Authorization: Bearer <your-jwt-token>
+
+### Создание кота (требуется аутентификация)
+POST http://localhost:8080/api/cat/create
+Authorization: Bearer <your-jwt-token>
+Content-Type: application/json
+
+{
+  "name": "Мурзик",
+  "age": 3,
+  "description": "Ласковый и игривый кот"
+}
+
+### Обновление кота (требуется аутентификация, только владелец или админ)
+PUT http://localhost:8080/api/cat/update?id=1
+Authorization: Bearer <your-jwt-token>
+Content-Type: application/json
+
+{
+  "name": "Обновленный Мурзик",
+  "age": 4,
+  "description": "Стал еще более ласковым"
+}
+
+### Удаление кота (требуется аутентификация, только владелец или админ)
+DELETE http://localhost:8080/api/cat/delete?id=1
+Authorization: Bearer <your-jwt-token>
