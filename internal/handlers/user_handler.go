@@ -3,10 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"meawle/internal/middleware"
 	"meawle/internal/models"
 	"meawle/internal/services"
+
+	"github.com/gorilla/mux"
 )
 
 // UserHandler представляет хэндлер для работы с пользователями
@@ -81,21 +84,16 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем пользователя из контекста
-	currentUser := middleware.GetUserFromContext(r.Context())
-	if currentUser == nil {
-		rw.Error(http.StatusUnauthorized, "Authentication required")
-		return
-	}
-
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 
-	user, err := h.service.GetUserByID(id, currentUser.UserID, currentUser.IsAdmin)
+	user, err := h.service.GetUserByID(id)
 	if err != nil {
 		h.handleServiceError(rw, err)
 		return
@@ -138,10 +136,12 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 
@@ -176,10 +176,12 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 

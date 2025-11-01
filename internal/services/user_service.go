@@ -92,14 +92,7 @@ func (s *UserService) Login(req *models.UserLoginRequest) (string, *models.UserR
 }
 
 // GetUserByID возвращает пользователя по ID
-func (s *UserService) GetUserByID(id int, currentUserID int, isAdmin bool) (*models.UserResponse, error) {
-	// Проверяем права доступа
-	// Админ может получать данные всех пользователей
-	// Обычный пользователь может получать только свои данные
-	if !isAdmin && currentUserID != id {
-		return nil, ErrAccessDenied
-	}
-
+func (s *UserService) GetUserByID(id int) (*models.UserResponse, error) {
 	user, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, ErrUserNotFound

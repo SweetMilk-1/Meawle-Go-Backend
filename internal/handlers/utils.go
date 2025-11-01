@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"meawle/internal/models"
 )
@@ -40,21 +39,6 @@ func (rw *ResponseWriter) Created(data interface{}) {
 	rw.JSON(http.StatusCreated, models.Success(data))
 }
 
-// ParseID извлекает и парсит ID из query параметров
-func ParseID(r *http.Request, paramName string) (int, error) {
-	idStr := r.URL.Query().Get(paramName)
-	if idStr == "" {
-		return 0, ErrMissingParameter
-	}
-	
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		return 0, ErrInvalidParameter
-	}
-	
-	return id, nil
-}
-
 // ValidateMethod проверяет HTTP метод
 func ValidateMethod(r *http.Request, allowedMethod string) bool {
 	return r.Method == allowedMethod
@@ -62,8 +46,6 @@ func ValidateMethod(r *http.Request, allowedMethod string) bool {
 
 // Ошибки
 var (
-	ErrMissingParameter = &HandlerError{Message: "Parameter is required", StatusCode: http.StatusBadRequest}
-	ErrInvalidParameter = &HandlerError{Message: "Invalid parameter", StatusCode: http.StatusBadRequest}
 	ErrMethodNotAllowed = &HandlerError{Message: "Method not allowed", StatusCode: http.StatusMethodNotAllowed}
 )
 

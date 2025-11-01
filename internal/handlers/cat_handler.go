@@ -3,10 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"meawle/internal/middleware"
 	"meawle/internal/models"
 	"meawle/internal/services"
+
+	"github.com/gorilla/mux"
 )
 
 // CatHandler представляет хэндлер для работы с котами
@@ -59,10 +62,12 @@ func (h *CatHandler) GetCat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid cat ID")
 		return
 	}
 
@@ -134,10 +139,12 @@ func (h *CatHandler) UpdateCat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid cat ID")
 		return
 	}
 
@@ -172,10 +179,12 @@ func (h *CatHandler) DeleteCat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Извлекаем ID из URL параметров
-	id, err := ParseID(r, "id")
+	// Извлекаем ID из path параметров
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		rw.Error(http.StatusBadRequest, err.Error())
+		rw.Error(http.StatusBadRequest, "Invalid cat ID")
 		return
 	}
 
