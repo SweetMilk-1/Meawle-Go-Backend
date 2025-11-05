@@ -71,7 +71,19 @@ func (h *CatBreedHandler) GetCatBreed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	breed, err := h.service.GetCatBreedByID(id)
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	var isAdmin bool
+
+	if currentUser == nil {
+		// Неавторизованный пользователь
+		isAdmin = false
+	} else {
+		// Авторизованный пользователь
+		isAdmin = currentUser.IsAdmin
+	}
+
+	breed, err := h.service.GetCatBreedByIDWithUser(id, isAdmin)
 	if err != nil {
 		rw.Error(http.StatusNotFound, "Cat breed not found")
 		return
@@ -89,7 +101,19 @@ func (h *CatBreedHandler) GetAllCatBreeds(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	breeds, err := h.service.GetAllCatBreeds()
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	var isAdmin bool
+
+	if currentUser == nil {
+		// Неавторизованный пользователь
+		isAdmin = false
+	} else {
+		// Авторизованный пользователь
+		isAdmin = currentUser.IsAdmin
+	}
+
+	breeds, err := h.service.GetAllCatBreedsWithUser(isAdmin)
 	if err != nil {
 		rw.Error(http.StatusInternalServerError, "Internal server error")
 		return

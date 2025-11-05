@@ -33,6 +33,7 @@ type UserResponse struct {
 	ID      int    `json:"id"`
 	Email   string `json:"email"`
 	IsAdmin bool   `json:"is_admin"`
+	CanEdit bool   `json:"can_edit"`
 }
 
 // ToResponse преобразует User в UserResponse
@@ -41,5 +42,6 @@ func (u *User) ToResponse() UserResponse {
 		ID:      u.ID,
 		Email:   u.Email,
 		IsAdmin: u.IsAdmin,
+		CanEdit: false, // По умолчанию false, будет установлено в сервисе
 	}
 }

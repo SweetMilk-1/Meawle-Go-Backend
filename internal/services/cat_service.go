@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	ErrCatNotFound     = errors.New("cat not found")
-	ErrInvalidCatData  = errors.New("invalid cat data")
-	ErrInvalidCatAge   = errors.New("cat age must be between 0 and 30 years")
+	ErrCatNotFound    = errors.New("cat not found")
+	ErrInvalidCatData = errors.New("invalid cat data")
+	ErrInvalidCatAge  = errors.New("cat age must be between 0 and 30 years")
+	ErrAccessDenied   = errors.New("access denied")
 )
 
 // CatService представляет сервис для работы с котами
@@ -24,6 +25,15 @@ func NewCatService(repo repositories.CatRepository) *CatService {
 	return &CatService{
 		repo: repo,
 	}
+}
+
+// isEditableByUser проверяет, может ли пользователь редактировать кота
+func (s *CatService) isEditableByUser(catUserID, currentUserID int, isAdmin bool) bool {
+	// Если userID = 0 - неавторизованный пользователь, can_edit = false
+	if currentUserID == 0 {
+		return false
+	}
+	return isAdmin || catUserID == currentUserID
 }
 
 // Create создает нового кота
@@ -67,6 +77,18 @@ func (s *CatService) GetCatByID(id int) (*models.CatResponse, error) {
 	return &response, nil
 }
 
+// GetCatByIDWithUser возвращает кота по ID с учетом прав доступа пользователя
+func (s *CatService) GetCatByIDWithUser(id int, currentUserID int, isAdmin bool) (*models.CatResponse, error) {
+	cat, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, ErrCatNotFound
+	}
+
+	response := cat.ToResponse()
+	response.CanEdit = s.isEditableByUser(cat.UserID, currentUserID, isAdmin)
+	return &response, nil
+}
+
 // GetAllCats возвращает всех котов
 func (s *CatService) GetAllCats() ([]models.CatResponse, error) {
 	cats, err := s.repo.GetAll()
@@ -82,6 +104,23 @@ func (s *CatService) GetAllCats() ([]models.CatResponse, error) {
 	return responses, nil
 }
 
+// GetAllCatsWithUser возвращает всех котов с учетом прав доступа пользователя
+func (s *CatService) GetAllCatsWithUser(currentUserID int, isAdmin bool) ([]models.CatResponse, error) {
+	cats, err := s.repo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []models.CatResponse
+	for _, cat := range cats {
+		response := cat.ToResponse()
+		response.CanEdit = s.isEditableByUser(cat.UserID, currentUserID, isAdmin)
+		responses = append(responses, response)
+	}
+
+	return responses, nil
+}
+
 // GetUserCats возвращает котов текущего пользователя
 func (s *CatService) GetUserCats(userID int) ([]models.CatResponse, error) {
 	cats, err := s.repo.GetByUserID(userID)
@@ -91,7 +130,9 @@ func (s *CatService) GetUserCats(userID int) ([]models.CatResponse, error) {
 
 	var responses []models.CatResponse
 	for _, cat := range cats {
-		responses = append(responses, cat.ToResponse())
+		response := cat.ToResponse()
+		response.CanEdit = true // Пользователь всегда может редактировать своих котов
+		responses = append(responses, response)
 	}
 
 	return responses, nil
@@ -106,7 +147,7 @@ func (s *CatService) UpdateCat(id int, req *models.CatUpdateRequest, userID int,
 	}
 
 	// Проверяем права доступа: пользователь может обновлять только своих котов, админ - любых
-	if !isAdmin && cat.UserID != userID {
+	if !s.isEditableByUser(cat.UserID, userID, isAdmin) {
 		return ErrAccessDenied
 	}
 
@@ -127,7 +168,7 @@ func (s *CatService) DeleteCat(id int, userID int, isAdmin bool) error {
 	}
 
 	// Проверяем права доступа: пользователь может удалять только своих котов, админ - любых
-	if !isAdmin && cat.UserID != userID {
+	if !s.isEditableByUser(cat.UserID, userID, isAdmin) {
 		return ErrAccessDenied
 	}
 

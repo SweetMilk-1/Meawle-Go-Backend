@@ -22,6 +22,9 @@ func SetupRoutes(
 	// API маршруты с версионированием
 	api := r.PathPrefix("/api/v1").Subrouter()
 
+	// Применяем middleware для извлечения пользователя ко всем API маршрутам
+	api.Use(authMiddleware.ExtractUser)
+
 	// Публичные маршруты
 	api.HandleFunc("/auth/register", userHandler.Register).Methods(http.MethodPost)
 	api.HandleFunc("/auth/login", userHandler.Login).Methods(http.MethodPost)

@@ -47,6 +47,29 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
+// ExtractUser middleware извлекает пользователя из токена, но не требует авторизации
+func (m *AuthMiddleware) ExtractUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := m.extractToken(r)
+		if token == "" {
+			// Токен не передан - продолжаем выполнение
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		claims, err := m.service.ValidateToken(token)
+		if err != nil {
+			// Токен невалиден - продолжаем выполнение
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Добавляем claims в контекст
+		ctx := context.WithValue(r.Context(), UserContextKey, claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 // extractToken извлекает токен из заголовка Authorization
 func (m *AuthMiddleware) extractToken(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")

@@ -71,7 +71,22 @@ func (h *CatHandler) GetCat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cat, err := h.service.GetCatByID(id)
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	var userID int
+	var isAdmin bool
+
+	if currentUser == nil {
+		// Неавторизованный пользователь
+		userID = 0
+		isAdmin = false
+	} else {
+		// Авторизованный пользователь
+		userID = currentUser.UserID
+		isAdmin = currentUser.IsAdmin
+	}
+
+	cat, err := h.service.GetCatByIDWithUser(id, userID, isAdmin)
 	if err != nil {
 		h.handleServiceError(rw, err)
 		return
@@ -89,7 +104,22 @@ func (h *CatHandler) GetAllCats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cats, err := h.service.GetAllCats()
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	var userID int
+	var isAdmin bool
+
+	if currentUser == nil {
+		// Неавторизованный пользователь
+		userID = 0
+		isAdmin = false
+	} else {
+		// Авторизованный пользователь
+		userID = currentUser.UserID
+		isAdmin = currentUser.IsAdmin
+	}
+
+	cats, err := h.service.GetAllCatsWithUser(userID, isAdmin)
 	if err != nil {
 		rw.Error(http.StatusInternalServerError, "Internal server error")
 		return
