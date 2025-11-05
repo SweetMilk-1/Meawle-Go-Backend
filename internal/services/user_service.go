@@ -91,19 +91,25 @@ func (s *UserService) Login(req *models.UserLoginRequest) (string, *models.UserR
 	return token, &response, nil
 }
 
-// GetUserByID возвращает пользователя по ID
-func (s *UserService) GetUserByID(id int) (*models.UserResponse, error) {
+// GetUserByIDWithUser возвращает пользователя по ID с учетом прав доступа текущего пользователя
+func (s *UserService) GetUserByIDWithUser(id int, currentUserID int, isAdmin bool) (*models.UserResponse, error) {
 	user, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, ErrUserNotFound
 	}
 
 	response := user.ToResponse()
+	// Если userID = 0 - неавторизованный пользователь, can_edit = false
+	if currentUserID == 0 {
+		response.CanEdit = false
+	} else {
+		response.CanEdit = isAdmin || currentUserID == id
+	}
 	return &response, nil
 }
 
-// GetAllUsers возвращает всех пользователей
-func (s *UserService) GetAllUsers() ([]models.UserResponse, error) {
+// GetAllUsersWithUser возвращает всех пользователей с учетом прав доступа текущего пользователя
+func (s *UserService) GetAllUsersWithUser(currentUserID int, isAdmin bool) ([]models.UserResponse, error) {
 	users, err := s.repo.GetAll()
 	if err != nil {
 		return nil, err
@@ -111,7 +117,14 @@ func (s *UserService) GetAllUsers() ([]models.UserResponse, error) {
 
 	var responses []models.UserResponse
 	for _, user := range users {
-		responses = append(responses, user.ToResponse())
+		response := user.ToResponse()
+		// Если userID = 0 - неавторизованный пользователь, can_edit = false
+		if currentUserID == 0 {
+			response.CanEdit = false
+		} else {
+			response.CanEdit = isAdmin || currentUserID == user.ID
+		}
+		responses = append(responses, response)
 	}
 
 	return responses, nil

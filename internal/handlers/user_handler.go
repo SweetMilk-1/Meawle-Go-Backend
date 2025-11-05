@@ -93,7 +93,22 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.GetUserByID(id)
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	var userID int
+	var isAdmin bool
+
+	if currentUser == nil {
+		// Неавторизованный пользователь
+		userID = 0
+		isAdmin = false
+	} else {
+		// Авторизованный пользователь
+		userID = currentUser.UserID
+		isAdmin = currentUser.IsAdmin
+	}
+
+	user, err := h.service.GetUserByIDWithUser(id, userID, isAdmin)
 	if err != nil {
 		h.handleServiceError(rw, err)
 		return
@@ -111,7 +126,22 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := h.service.GetAllUsers()
+	// Получаем пользователя из контекста
+	currentUser := middleware.GetUserFromContext(r.Context())
+	var userID int
+	var isAdmin bool
+
+	if currentUser == nil {
+		// Неавторизованный пользователь
+		userID = 0
+		isAdmin = false
+	} else {
+		// Авторизованный пользователь
+		userID = currentUser.UserID
+		isAdmin = currentUser.IsAdmin
+	}
+
+	users, err := h.service.GetAllUsersWithUser(userID, isAdmin)
 	if err != nil {
 		rw.Error(http.StatusInternalServerError, "Internal server error")
 		return

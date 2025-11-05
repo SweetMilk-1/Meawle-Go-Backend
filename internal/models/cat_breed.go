@@ -32,6 +32,7 @@ type CatBreedResponse struct {
 	Description string    `json:"description"`
 	UserID      int       `json:"user_id"`
 	CreatedAt   time.Time `json:"created_at"`
+	CanEdit     bool      `json:"can_edit"`
 }
 
 // ToResponse преобразует CatBreed в CatBreedResponse
@@ -42,5 +43,6 @@ func (c *CatBreed) ToResponse() CatBreedResponse {
 		Description: c.Description,
 		UserID:      c.UserID,
 		CreatedAt:   c.CreatedAt,
+		CanEdit:     false, // По умолчанию false, будет установлено в сервисе
 	}
 }

@@ -65,19 +65,20 @@ func (s *CatBreedService) Create(req *models.CatBreedCreateRequest, userID int) 
 	return &response, nil
 }
 
-// GetCatBreedByID возвращает породу кошек по ID
-func (s *CatBreedService) GetCatBreedByID(id int) (*models.CatBreedResponse, error) {
+// GetCatBreedByIDWithUser возвращает породу кошек по ID с учетом прав доступа пользователя
+func (s *CatBreedService) GetCatBreedByIDWithUser(id int, isAdmin bool) (*models.CatBreedResponse, error) {
 	breed, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, ErrCatBreedNotFound
 	}
 
 	response := breed.ToResponse()
+	response.CanEdit = isAdmin // Только админы могут редактировать породы
 	return &response, nil
 }
 
-// GetAllCatBreeds возвращает все породы кошек
-func (s *CatBreedService) GetAllCatBreeds() ([]models.CatBreedResponse, error) {
+// GetAllCatBreedsWithUser возвращает все породы кошек с учетом прав доступа пользователя
+func (s *CatBreedService) GetAllCatBreedsWithUser(isAdmin bool) ([]models.CatBreedResponse, error) {
 	breeds, err := s.repo.GetAll()
 	if err != nil {
 		return nil, err
@@ -85,7 +86,9 @@ func (s *CatBreedService) GetAllCatBreeds() ([]models.CatBreedResponse, error) {
 
 	var responses []models.CatBreedResponse
 	for _, breed := range breeds {
-		responses = append(responses, breed.ToResponse())
+		response := breed.ToResponse()
+		response.CanEdit = isAdmin // Только админы могут редактировать породы
+		responses = append(responses, response)
 	}
 
 	return responses, nil
