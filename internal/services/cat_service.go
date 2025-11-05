@@ -12,6 +12,7 @@ var (
 	ErrCatNotFound    = errors.New("cat not found")
 	ErrInvalidCatData = errors.New("invalid cat data")
 	ErrInvalidCatAge  = errors.New("cat age must be between 0 and 30 years")
+	ErrAccessDenied   = errors.New("access denied")
 )
 
 // CatService представляет сервис для работы с котами
@@ -24,6 +25,15 @@ func NewCatService(repo repositories.CatRepository) *CatService {
 	return &CatService{
 		repo: repo,
 	}
+}
+
+// isEditableByUser проверяет, может ли пользователь редактировать кота
+func (s *CatService) isEditableByUser(catUserID, currentUserID int, isAdmin bool) bool {
+	// Если userID = 0 - неавторизованный пользователь, can_edit = false
+	if currentUserID == 0 {
+		return false
+	}
+	return isAdmin || catUserID == currentUserID
 }
 
 // Create создает нового кота
@@ -75,12 +85,7 @@ func (s *CatService) GetCatByIDWithUser(id int, currentUserID int, isAdmin bool)
 	}
 
 	response := cat.ToResponse()
-	// Если userID = 0 - неавторизованный пользователь, can_edit = false
-	if currentUserID == 0 {
-		response.CanEdit = false
-	} else {
-		response.CanEdit = isAdmin || cat.UserID == currentUserID
-	}
+	response.CanEdit = s.isEditableByUser(cat.UserID, currentUserID, isAdmin)
 	return &response, nil
 }
 
@@ -109,12 +114,7 @@ func (s *CatService) GetAllCatsWithUser(currentUserID int, isAdmin bool) ([]mode
 	var responses []models.CatResponse
 	for _, cat := range cats {
 		response := cat.ToResponse()
-		// Если userID = 0 - неавторизованный пользователь, can_edit = false
-		if currentUserID == 0 {
-			response.CanEdit = false
-		} else {
-			response.CanEdit = isAdmin || cat.UserID == currentUserID
-		}
+		response.CanEdit = s.isEditableByUser(cat.UserID, currentUserID, isAdmin)
 		responses = append(responses, response)
 	}
 
@@ -147,7 +147,7 @@ func (s *CatService) UpdateCat(id int, req *models.CatUpdateRequest, userID int,
 	}
 
 	// Проверяем права доступа: пользователь может обновлять только своих котов, админ - любых
-	if !isAdmin && cat.UserID != userID {
+	if !s.isEditableByUser(cat.UserID, userID, isAdmin) {
 		return ErrAccessDenied
 	}
 
@@ -168,7 +168,7 @@ func (s *CatService) DeleteCat(id int, userID int, isAdmin bool) error {
 	}
 
 	// Проверяем права доступа: пользователь может удалять только своих котов, админ - любых
-	if !isAdmin && cat.UserID != userID {
+	if !s.isEditableByUser(cat.UserID, userID, isAdmin) {
 		return ErrAccessDenied
 	}
 

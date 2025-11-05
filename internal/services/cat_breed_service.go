@@ -65,6 +65,12 @@ func (s *CatBreedService) Create(req *models.CatBreedCreateRequest, userID int) 
 	return &response, nil
 }
 
+// isEditableByUser проверяет, может ли пользователь редактировать породу кошек
+func (s *CatBreedService) isEditableByUser(breedUserID int, isAdmin bool) bool {
+	// Только админы могут редактировать породы
+	return isAdmin
+}
+
 // GetCatBreedByIDWithUser возвращает породу кошек по ID с учетом прав доступа пользователя
 func (s *CatBreedService) GetCatBreedByIDWithUser(id int, isAdmin bool) (*models.CatBreedResponse, error) {
 	breed, err := s.repo.GetByID(id)
@@ -73,7 +79,7 @@ func (s *CatBreedService) GetCatBreedByIDWithUser(id int, isAdmin bool) (*models
 	}
 
 	response := breed.ToResponse()
-	response.CanEdit = isAdmin // Только админы могут редактировать породы
+	response.CanEdit = s.isEditableByUser(breed.UserID, isAdmin)
 	return &response, nil
 }
 
@@ -87,7 +93,7 @@ func (s *CatBreedService) GetAllCatBreedsWithUser(isAdmin bool) ([]models.CatBre
 	var responses []models.CatBreedResponse
 	for _, breed := range breeds {
 		response := breed.ToResponse()
-		response.CanEdit = isAdmin // Только админы могут редактировать породы
+		response.CanEdit = s.isEditableByUser(breed.UserID, isAdmin)
 		responses = append(responses, response)
 	}
 
@@ -103,7 +109,7 @@ func (s *CatBreedService) UpdateCatBreed(id int, req *models.CatBreedUpdateReque
 	}
 
 	// Проверяем права доступа: пользователь может обновлять только свои породы, админ - любые
-	if !isAdmin && breed.UserID != userID {
+	if !s.isEditableByUser(breed.UserID, isAdmin) {
 		return ErrAccessDenied
 	}
 
@@ -130,7 +136,7 @@ func (s *CatBreedService) DeleteCatBreed(id int, userID int, isAdmin bool) error
 	}
 
 	// Проверяем права доступа: пользователь может удалять только свои породы, админ - любые
-	if !isAdmin && breed.UserID != userID {
+	if !s.isEditableByUser(breed.UserID, isAdmin) {
 		return ErrAccessDenied
 	}
 

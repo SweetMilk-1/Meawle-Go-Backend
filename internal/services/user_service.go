@@ -15,7 +15,6 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrEmailExists        = errors.New("email already exists")
 	ErrUnauthorized       = errors.New("unauthorized")
-	ErrAccessDenied       = errors.New("access denied")
 )
 
 // JWTClaims представляет claims для JWT токена
@@ -91,6 +90,15 @@ func (s *UserService) Login(req *models.UserLoginRequest) (string, *models.UserR
 	return token, &response, nil
 }
 
+// isEditableByUser проверяет, может ли пользователь редактировать другого пользователя
+func (s *UserService) isEditableByUser(targetUserID, currentUserID int, isAdmin bool) bool {
+	// Если userID = 0 - неавторизованный пользователь, can_edit = false
+	if currentUserID == 0 {
+		return false
+	}
+	return isAdmin || currentUserID == targetUserID
+}
+
 // GetUserByIDWithUser возвращает пользователя по ID с учетом прав доступа текущего пользователя
 func (s *UserService) GetUserByIDWithUser(id int, currentUserID int, isAdmin bool) (*models.UserResponse, error) {
 	user, err := s.repo.GetByID(id)
@@ -99,12 +107,7 @@ func (s *UserService) GetUserByIDWithUser(id int, currentUserID int, isAdmin boo
 	}
 
 	response := user.ToResponse()
-	// Если userID = 0 - неавторизованный пользователь, can_edit = false
-	if currentUserID == 0 {
-		response.CanEdit = false
-	} else {
-		response.CanEdit = isAdmin || currentUserID == id
-	}
+	response.CanEdit = s.isEditableByUser(user.ID, currentUserID, isAdmin)
 	return &response, nil
 }
 
@@ -118,12 +121,7 @@ func (s *UserService) GetAllUsersWithUser(currentUserID int, isAdmin bool) ([]mo
 	var responses []models.UserResponse
 	for _, user := range users {
 		response := user.ToResponse()
-		// Если userID = 0 - неавторизованный пользователь, can_edit = false
-		if currentUserID == 0 {
-			response.CanEdit = false
-		} else {
-			response.CanEdit = isAdmin || currentUserID == user.ID
-		}
+		response.CanEdit = s.isEditableByUser(user.ID, currentUserID, isAdmin)
 		responses = append(responses, response)
 	}
 
@@ -135,7 +133,7 @@ func (s *UserService) UpdateUser(id int, req *models.UserUpdateRequest, currentU
 	// Проверяем права доступа
 	// Админ может обновлять данные всех пользователей
 	// Обычный пользователь может обновлять только свои данные
-	if !isAdmin && currentUserID != id {
+	if !s.isEditableByUser(id, currentUserID, isAdmin) {
 		return ErrAccessDenied
 	}
 
@@ -164,7 +162,7 @@ func (s *UserService) DeleteUser(id int, currentUserID int, isAdmin bool) error 
 	// Проверяем права доступа
 	// Админ может удалять данные всех пользователей
 	// Обычный пользователь может удалять только свои данные
-	if !isAdmin && currentUserID != id {
+	if !s.isEditableByUser(id, currentUserID, isAdmin) {
 		return ErrAccessDenied
 	}
 
