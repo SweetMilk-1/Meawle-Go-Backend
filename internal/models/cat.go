@@ -11,6 +11,7 @@ type Cat struct {
 	Age         *int      `json:"age,omitempty"`
 	Description *string   `json:"description,omitempty"`
 	UserID      int       `json:"user_id"`
+	CatBreedID  *int      `json:"cat_breed_id,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -19,6 +20,7 @@ type CatCreateRequest struct {
 	Name        string  `json:"name" validate:"required,min=1"`
 	Age         *int    `json:"age,omitempty" validate:"omitempty,min=0,max=30"`
 	Description *string `json:"description,omitempty" validate:"omitempty,min=1"`
+	CatBreedID  *int    `json:"cat_breed_id,omitempty" validate:"omitempty,min=1"`
 }
 
 // CatUpdateRequest представляет данные для обновления кота
@@ -26,6 +28,7 @@ type CatUpdateRequest struct {
 	Name        *string `json:"name,omitempty" validate:"omitempty,min=1"`
 	Age         *int    `json:"age,omitempty" validate:"omitempty,min=0,max=30"`
 	Description *string `json:"description,omitempty" validate:"omitempty,min=1"`
+	CatBreedID  *int    `json:"cat_breed_id,omitempty" validate:"omitempty,min=1"`
 }
 
 // CatResponse представляет ответ с данными кота
@@ -35,6 +38,7 @@ type CatResponse struct {
 	Age         *int      `json:"age,omitempty"`
 	Description *string   `json:"description,omitempty"`
 	UserID      int       `json:"user_id"`
+	CatBreedID  *int      `json:"cat_breed_id,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	CanEdit     bool      `json:"can_edit"`
 }
@@ -47,6 +51,7 @@ func (c *Cat) ToResponse() CatResponse {
 		Age:         c.Age,
 		Description: c.Description,
 		UserID:      c.UserID,
+		CatBreedID:  c.CatBreedID,
 		CreatedAt:   c.CreatedAt,
 		CanEdit:     false, // По умолчанию false, будет установлено в сервисе
 	}

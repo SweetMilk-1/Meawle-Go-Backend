@@ -26,9 +26,9 @@ func NewCatRepository(db Database) CatRepository {
 
 // Create создает нового кота
 func (r *catRepository) Create(cat *models.Cat) error {
-	query := `INSERT INTO cats (name, age, description, user_id) VALUES (?, ?, ?, ?)`
+	query := `INSERT INTO cats (name, age, description, user_id, cat_breed_id) VALUES (?, ?, ?, ?, ?)`
 
-	result, err := r.db.Execute(query, cat.Name, cat.Age, cat.Description, cat.UserID)
+	result, err := r.db.Execute(query, cat.Name, cat.Age, cat.Description, cat.UserID, cat.CatBreedID)
 	if err != nil {
 		return err
 	}
@@ -44,12 +44,12 @@ func (r *catRepository) Create(cat *models.Cat) error {
 
 // GetByID возвращает кота по ID
 func (r *catRepository) GetByID(id int) (*models.Cat, error) {
-	query := `SELECT id, name, age, description, user_id, created_at FROM cats WHERE id = ?`
+	query := `SELECT id, name, age, description, user_id, cat_breed_id, created_at FROM cats WHERE id = ?`
 
 	row := r.db.QueryRow(query, id)
 
 	var cat models.Cat
-	err := row.Scan(&cat.ID, &cat.Name, &cat.Age, &cat.Description, &cat.UserID, &cat.CreatedAt)
+	err := row.Scan(&cat.ID, &cat.Name, &cat.Age, &cat.Description, &cat.UserID, &cat.CatBreedID, &cat.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (r *catRepository) GetByID(id int) (*models.Cat, error) {
 
 // GetAll возвращает всех котов
 func (r *catRepository) GetAll() ([]models.Cat, error) {
-	query := `SELECT id, name, age, description, user_id, created_at FROM cats ORDER BY created_at DESC`
+	query := `SELECT id, name, age, description, user_id, cat_breed_id, created_at FROM cats ORDER BY created_at DESC`
 
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -70,7 +70,7 @@ func (r *catRepository) GetAll() ([]models.Cat, error) {
 	var cats []models.Cat
 	for rows.Next() {
 		var cat models.Cat
-		err := rows.Scan(&cat.ID, &cat.Name, &cat.Age, &cat.Description, &cat.UserID, &cat.CreatedAt)
+		err := rows.Scan(&cat.ID, &cat.Name, &cat.Age, &cat.Description, &cat.UserID, &cat.CatBreedID, &cat.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func (r *catRepository) GetAll() ([]models.Cat, error) {
 
 // GetByUserID возвращает котов по ID пользователя
 func (r *catRepository) GetByUserID(userID int) ([]models.Cat, error) {
-	query := `SELECT id, name, age, description, user_id, created_at FROM cats WHERE user_id = ? ORDER BY created_at DESC`
+	query := `SELECT id, name, age, description, user_id, cat_breed_id, created_at FROM cats WHERE user_id = ? ORDER BY created_at DESC`
 
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
@@ -93,7 +93,7 @@ func (r *catRepository) GetByUserID(userID int) ([]models.Cat, error) {
 	var cats []models.Cat
 	for rows.Next() {
 		var cat models.Cat
-		err := rows.Scan(&cat.ID, &cat.Name, &cat.Age, &cat.Description, &cat.UserID, &cat.CreatedAt)
+		err := rows.Scan(&cat.ID, &cat.Name, &cat.Age, &cat.Description, &cat.UserID, &cat.CatBreedID, &cat.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -121,6 +121,11 @@ func (r *catRepository) Update(id int, updateReq *models.CatUpdateRequest) error
 	if updateReq.Description != nil {
 		query += "description = ?, "
 		params = append(params, *updateReq.Description)
+	}
+
+	if updateReq.CatBreedID != nil {
+		query += "cat_breed_id = ?, "
+		params = append(params, *updateReq.CatBreedID)
 	}
 
 	// Убираем последнюю запятую и пробел

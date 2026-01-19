@@ -49,7 +49,7 @@ func InitializeDependencies(cfg *config.Config, logger *log.Logger) (*Dependenci
 	// Инициализация сервисов
 	userService := services.NewUserService(userRepo, cfg.JWTSecret)
 	catBreedService := services.NewCatBreedService(catBreedRepo)
-	catService := services.NewCatService(catRepo)
+	catService := services.NewCatService(catRepo, catBreedRepo)
 
 	// Инициализация хэндлеров
 	userHandler := handlers.NewUserHandler(userService)
