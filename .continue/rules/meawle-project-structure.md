@@ -1,6 +1,4 @@
 ---
-description: Detailed Meawle project structure for efficient navigation and
-  consistent development
 alwaysApply: true
 ---
 
@@ -27,3 +25,8 @@ Follow Meawle's clean architecture pattern with these specific directories and r
 - Dependency injection for testability
 - Single responsibility for each component
 - Clean boundaries between HTTP concerns and business logic
+
+**Database schema updates:**
+- Table `cats` has foreign key `cat_breed_id` referencing `cat_breeds(id)`
+- Field `cat_breed_id` is optional (nullable) in both models and API
+- All cat-related endpoints support `cat_breed_id` field in requests and responses

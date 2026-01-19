@@ -17,13 +17,15 @@ var (
 
 // CatService представляет сервис для работы с котами
 type CatService struct {
-	repo repositories.CatRepository
+	repo      repositories.CatRepository
+	breedRepo repositories.CatBreedRepository
 }
 
 // NewCatService создает новый экземпляр сервиса котов
-func NewCatService(repo repositories.CatRepository) *CatService {
+func NewCatService(repo repositories.CatRepository, breedRepo repositories.CatBreedRepository) *CatService {
 	return &CatService{
-		repo: repo,
+		repo:      repo,
+		breedRepo: breedRepo,
 	}
 }
 
@@ -34,6 +36,20 @@ func (s *CatService) isEditableByUser(catUserID, currentUserID int, isAdmin bool
 		return false
 	}
 	return isAdmin || catUserID == currentUserID
+}
+
+// checkCatBreedExists проверяет существование породы кошки
+func (s *CatService) checkCatBreedExists(catBreedID *int) error {
+	if catBreedID == nil {
+		return nil // Поле опциональное, nil допустимо
+	}
+
+	_, err := s.breedRepo.GetByID(*catBreedID)
+	if err != nil {
+		return ErrCatBreedNotFound // Используем ошибку из cat_breed_service.go
+	}
+
+	return nil
 }
 
 // Create создает нового кота
@@ -48,11 +64,17 @@ func (s *CatService) Create(req *models.CatCreateRequest, userID int) (*models.C
 		return nil, ErrInvalidCatAge
 	}
 
+	// Проверяем существование породы, если указана
+	if err := s.checkCatBreedExists(req.CatBreedID); err != nil {
+		return nil, err
+	}
+
 	// Создаем кота
 	cat := &models.Cat{
 		Name:        req.Name,
 		Age:         req.Age,
 		Description: req.Description,
+		CatBreedID:  req.CatBreedID,
 		UserID:      userID,
 		CreatedAt:   time.Now(),
 	}
@@ -154,6 +176,11 @@ func (s *CatService) UpdateCat(id int, req *models.CatUpdateRequest, userID int,
 	// Проверяем возраст кота
 	if req.Age != nil && (*req.Age < 0 || *req.Age > 30) {
 		return ErrInvalidCatAge
+	}
+
+	// Проверяем существование породы, если указана
+	if err := s.checkCatBreedExists(req.CatBreedID); err != nil {
+		return err
 	}
 
 	return s.repo.Update(id, req)

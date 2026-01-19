@@ -261,6 +261,7 @@ Authorization: Bearer <your-jwt-token>
       "age": 3,
       "description": "Ласковый и игривый кот",
       "user_id": 1,
+      "cat_breed_id": 1,
       "created_at": "2024-01-15T10:30:00Z",
       "can_edit": false
     },
@@ -270,6 +271,7 @@ Authorization: Bearer <your-jwt-token>
       "age": null,
       "description": null,
       "user_id": 2,
+      "cat_breed_id": 2,
       "created_at": "2024-01-16T14:20:00Z",
       "can_edit": false
     }
@@ -298,6 +300,7 @@ Authorization: Bearer <your-jwt-token>
     "age": 3,
     "description": "Ласковый и игривый кот",
     "user_id": 1,
+    "cat_breed_id": 1,
     "created_at": "2024-01-15T10:30:00Z",
     "can_edit": false
   }
@@ -389,7 +392,8 @@ Authorization: Bearer <your-jwt-token>
 {
   "name": "Новое имя",
   "age": 4,
-  "description": "Новое описание"
+  "description": "Новое описание",
+  "cat_breed_id": 2
 }
 ```
 
@@ -397,6 +401,7 @@ Authorization: Bearer <your-jwt-token>
 - `name` (string) - Новое имя кошки
 - `age` (integer, min 0, max 30) - Новый возраст кошки
 - `description` (string) - Новое описание кошки
+- `cat_breed_id` (integer, min 1) - Новый ID породы кошки
 
 **Ответ:**
 ```json

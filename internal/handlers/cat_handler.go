@@ -238,6 +238,8 @@ func (h *CatHandler) handleServiceError(rw *ResponseWriter, err error) {
 		rw.Error(http.StatusBadRequest, "Cat age must be between 0 and 30 years")
 	case services.ErrAccessDenied:
 		rw.Error(http.StatusForbidden, "Access denied")
+	case services.ErrCatBreedNotFound:
+		rw.Error(http.StatusBadRequest, "Cat breed not found")
 	default:
 		rw.Error(http.StatusInternalServerError, "Internal server error")
 	}
