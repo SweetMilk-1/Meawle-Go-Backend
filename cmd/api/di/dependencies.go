@@ -19,12 +19,15 @@ type Dependencies struct {
 	UserRepo        repositories.UserRepository
 	CatBreedRepo    repositories.CatBreedRepository
 	CatRepo         repositories.CatRepository
+	CatHouseRepo    repositories.CatHouseRepository
 	UserService     *services.UserService
 	CatBreedService *services.CatBreedService
 	CatService      *services.CatService
+	CatHouseService *services.CatHouseService
 	UserHandler     *handlers.UserHandler
 	CatBreedHandler *handlers.CatBreedHandler
 	CatHandler      *handlers.CatHandler
+	CatHouseHandler *handlers.CatHouseHandler
 	AuthMiddleware  *middleware.AuthMiddleware
 }
 
@@ -45,16 +48,19 @@ func InitializeDependencies(cfg *config.Config, logger *log.Logger) (*Dependenci
 	userRepo := repositories.NewUserRepository(db)
 	catBreedRepo := repositories.NewCatBreedRepository(db)
 	catRepo := repositories.NewCatRepository(db)
+	catHouseRepo := repositories.NewCatHouseRepository(db)
 
 	// Инициализация сервисов
 	userService := services.NewUserService(userRepo, cfg.JWTSecret)
 	catBreedService := services.NewCatBreedService(catBreedRepo)
 	catService := services.NewCatService(catRepo, catBreedRepo)
+	catHouseService := services.NewCatHouseService(catHouseRepo, catRepo)
 
 	// Инициализация хэндлеров
 	userHandler := handlers.NewUserHandler(userService)
 	catBreedHandler := handlers.NewCatBreedHandler(catBreedService)
 	catHandler := handlers.NewCatHandler(catService)
+	catHouseHandler := handlers.NewCatHouseHandler(catHouseService)
 
 	// Инициализация middleware
 	authMiddleware := middleware.NewAuthMiddleware(userService)
@@ -66,12 +72,15 @@ func InitializeDependencies(cfg *config.Config, logger *log.Logger) (*Dependenci
 		UserRepo:        userRepo,
 		CatBreedRepo:    catBreedRepo,
 		CatRepo:         catRepo,
+		CatHouseRepo:    catHouseRepo,
 		UserService:     userService,
 		CatBreedService: catBreedService,
 		CatService:      catService,
+		CatHouseService: catHouseService,
 		UserHandler:     userHandler,
 		CatBreedHandler: catBreedHandler,
 		CatHandler:      catHandler,
+		CatHouseHandler: catHouseHandler,
 		AuthMiddleware:  authMiddleware,
 	}, nil
 }

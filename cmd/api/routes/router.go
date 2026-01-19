@@ -15,6 +15,7 @@ func SetupRoutes(
 	userHandler *handlers.UserHandler,
 	catBreedHandler *handlers.CatBreedHandler,
 	catHandler *handlers.CatHandler,
+	catHouseHandler *handlers.CatHouseHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) http.Handler {
 	r := mux.NewRouter()
@@ -34,6 +35,10 @@ func SetupRoutes(
 	api.HandleFunc("/cat-breeds/{id:[0-9]+}", catBreedHandler.GetCatBreed).Methods(http.MethodGet)
 	api.HandleFunc("/cats", catHandler.GetAllCats).Methods(http.MethodGet)
 	api.HandleFunc("/cats/{id:[0-9]+}", catHandler.GetCat).Methods(http.MethodGet)
+	api.HandleFunc("/cat-houses", catHouseHandler.GetAllCatHouses).Methods(http.MethodGet)
+	api.HandleFunc("/cat-houses/{id:[0-9]+}", catHouseHandler.GetCatHouse).Methods(http.MethodGet)
+	api.HandleFunc("/cat-houses/{id:[0-9]+}/cats", catHouseHandler.GetCatsInHouse).Methods(http.MethodGet)
+	api.HandleFunc("/cat-houses/{id:[0-9]+}/with-cats", catHouseHandler.GetCatHouseWithCats).Methods(http.MethodGet)
 
 	// Защищенные маршруты пользователей
 	users := api.PathPrefix("/users").Subrouter()
@@ -55,6 +60,18 @@ func SetupRoutes(
 	cats.HandleFunc("/user", catHandler.GetUserCats).Methods(http.MethodGet)
 	cats.HandleFunc("/{id:[0-9]+}", catHandler.UpdateCat).Methods(http.MethodPut)
 	cats.HandleFunc("/{id:[0-9]+}", catHandler.DeleteCat).Methods(http.MethodDelete)
+
+	// Защищенные маршруты домиков для кошек
+	catHouses := api.PathPrefix("/cat-houses").Subrouter()
+	catHouses.Use(authMiddleware.RequireAuth)
+	catHouses.HandleFunc("", catHouseHandler.Create).Methods(http.MethodPost)
+	catHouses.HandleFunc("/{id:[0-9]+}", catHouseHandler.UpdateCatHouse).Methods(http.MethodPut)
+	catHouses.HandleFunc("/{id:[0-9]+}", catHouseHandler.DeleteCatHouse).Methods(http.MethodDelete)
+
+	// Маршруты для размещения котов в домиках
+	catHouses.HandleFunc("/cats/{catId:[0-9]+}/occupancy", catHouseHandler.GetCatHouseOccupancy).Methods(http.MethodGet)
+	catHouses.HandleFunc("/cats/{catId:[0-9]+}/add", catHouseHandler.AddCatToHouse).Methods(http.MethodPost)
+	catHouses.HandleFunc("/cats/{catId:[0-9]+}/remove", catHouseHandler.RemoveCatFromHouse).Methods(http.MethodDelete)
 
 	// Health check
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

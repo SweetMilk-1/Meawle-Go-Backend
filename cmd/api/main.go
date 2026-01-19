@@ -24,6 +24,7 @@ func main() {
 		deps.UserHandler,
 		deps.CatBreedHandler,
 		deps.CatHandler,
+		deps.CatHouseHandler,
 		deps.AuthMiddleware,
 	)
 
