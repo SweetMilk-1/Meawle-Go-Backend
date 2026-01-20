@@ -65,6 +65,11 @@ func (d *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 	return d.DB.QueryRow(query, args...)
 }
 
+// Begin начинает новую транзакцию
+func (d *Database) Begin() (*sql.Tx, error) {
+	return d.DB.Begin()
+}
+
 // RunMigrations выполняет миграции базы данных
 func (d *Database) RunMigrations(migrationsPath string) error {
 	driver, err := sqlite3.WithInstance(d.DB, &sqlite3.Config{})
